@@ -1,11 +1,11 @@
-name: Terraform Apply
+name: Terraform Destroy
 
 on:
   workflow_dispatch:
  
 jobs:
   terraform:
-    name: 'Terraform Apply'
+    name: 'Terraform Destroy'
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +41,7 @@ jobs:
     - name: Terraform Plan
       run: terraform plan
 
-    # Step 6: Apply Terraform changes
+    # Step 6: Destroy Terraform changes
     
-    - name: Terraform Apply
-      run: terraform Apply -auto-approve
+    - name: Terraform Destroy
+      run: terraform Destroy -auto-approve
