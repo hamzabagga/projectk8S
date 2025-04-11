@@ -39,7 +39,7 @@ jobs:
     # Step 5: Plan Terraform changes
     
     - name: Terraform Plan
-      run: terraform plan
+      run: terraform plan -destroy
 
     # Step 6: Destroy Terraform changes
     
