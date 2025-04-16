@@ -1,4 +1,5 @@
 name: Terraform Apply
+
 on:
   workflow_dispatch:
     inputs:
@@ -34,6 +35,9 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+
+      - name: Terraform Select Workspace
+        run: terraform workspace select ${{ github.event.inputs.workspace }} || terraform workspace new ${{ github.event.inputs.workspace }}
 
       - name: Terraform Plan
         run: terraform plan
