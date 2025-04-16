@@ -1,11 +1,17 @@
 name: Terraform Apply
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      workspace:
+        description: "Select the Terraform workspace to use"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
 
-jobs:
   terraform:
     name: Terraform Apply
     runs-on: ubuntu-latest
