@@ -1,9 +1,14 @@
 
-
 locals {
   env = terraform.workspace
-  public_sg_rules_ingress = {for id,rule in csvdecode(file("./sg_rules.csv")) : id => rule if rule["sg_name"] == "public_sg" && rule["rule_type"] == "ingress"}
-  private_sg_rules_ingress = {for id,rule in csvdecode(file("./sg_rules.csv")) : id => rule if rule["sg_name"] == "private_sg" && rule["rule_type"] == "ingress"}
+  public_sg_rules_ingress = {
+    for id, rule in csvdecode(file("./sg_rules.csv")) :
+    id => rule if rule["sg_name"] == "public_sg" && rule["rule_type"] == "ingress"
+  }
+  private_sg_rules_ingress = {
+    for id, rule in csvdecode(file("./sg_rules.csv")) :
+    id => rule if rule["sg_name"] == "private_sg" && rule["rule_type"] == "ingress"
+  }
 }
 
 resource "aws_vpc" "main" {
@@ -121,4 +126,23 @@ resource "aws_security_group" "private_sg" {
     Name = "web-sg"
   }
   depends_on = [aws_subnet.private]
+}
+
+resource "aws_security_group_rule" "sg_rules" {
+  for_each = merge(local.public_sg_rules_ingress, local.private_sg_rules_ingress)
+
+  type              = each.value.rule_type
+  from_port         = tonumber(split("-", each.value.port_range)[0])
+  to_port           = tonumber(split("-", each.value.port_range)[1])
+  protocol          = each.value.protocol
+  security_group_id = each.value.sg_name == "public_sg" ? aws_security_group.public_sg.id : aws_security_group.private_sg.id
+
+  cidr_blocks = (each.value.dst_cidr != "" && each.value.dst_sg == "") ? [each.value.dst_cidr] : null
+
+  source_security_group_id = (each.value.dst_sg != "" && each.value.dst_cidr == "") ? (
+    each.value.dst_sg == "public_sg" ? aws_security_group.public_sg.id :
+    each.value.dst_sg == "private_sg" ? aws_security_group.private_sg.id : null
+  ) : null
+
+  depends_on = [aws_security_group.public_sg, aws_security_group.private_sg]
 }
