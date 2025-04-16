@@ -1,0 +1,6 @@
+sg_name,rule_type,protocol,port_range,dst_cidr,dst_sg
+public_sg,ingress,tcp,80-80,0.0.0.0/0,
+public_sg,ingress,tcp,443-443,0.0.0.0/0,
+public_sg,ingress,udp,230-230,,private_sg
+private_sg,ingress,tcp,6379-6379,10.0.1.0/24,
+private_sg,ingress,udp,379-6379,,public_sg

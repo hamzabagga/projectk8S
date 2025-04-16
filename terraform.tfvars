@@ -27,4 +27,6 @@ private_subnets = [
   }
 ]
 
-igw_name = "hamza-igw"
+igw_name          = "hamza-igw"
+eip_name          = "hamza-nat-eip"
+nat_gateway_name  = "hamza-nat"
