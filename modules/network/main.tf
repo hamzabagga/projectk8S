@@ -2,7 +2,8 @@ locals {
   env = terraform.workspace
 
   all_sg_rules = {
-    for idx, rule in csvdecode(file("./sg_rules.csv")) :
+    for idx, rule in csvdecode(file("${path.module}/sg_rules.csv")) :
+
     "${idx}" => rule
   }
 
