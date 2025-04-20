@@ -1,9 +1,10 @@
+
 locals {
   env = terraform.workspace
 
   all_sg_rules = {
     for idx, rule in csvdecode(file("./sg_rules.csv")) :
-    "${idx}" => rule
+    idx => rule
   }
 
   sg_names = distinct([
