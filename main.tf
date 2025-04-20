@@ -6,13 +6,11 @@ locals {
     "${idx}" => rule
   }
 
-  # Extraire tous les noms de groupes de sécurité de manière unique
   sg_names = distinct([
     for rule in local.all_sg_rules : rule.sg_name
   ])
 }
 
-# VPC
 resource "aws_vpc" "main" {
   cidr_block = var.cidr_block
   tags = {
@@ -20,7 +18,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Subnets
 resource "aws_subnet" "public" {
   count                   = length(var.public_subnets)
   vpc_id                  = aws_vpc.main.id
@@ -45,7 +42,6 @@ resource "aws_subnet" "private" {
   depends_on = [aws_vpc.main]
 }
 
-# Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
   tags = {
@@ -54,12 +50,11 @@ resource "aws_internet_gateway" "igw" {
   depends_on = [aws_vpc.main]
 }
 
-# NAT + EIP
 resource "aws_eip" "nat_eip" {
   count  = length(var.private_subnets)
   domain = "vpc"
   tags = {
-    Name = "nat-eip-${count.index}-${local.env}"
+    Name = "${var.eip_name}-${count.index}-${local.env}"
   }
   depends_on = [aws_internet_gateway.igw]
 }
@@ -69,12 +64,11 @@ resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat_eip[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
   tags = {
-    Name = "nat-${count.index}-${local.env}"
+    Name = "${var.nat_gateway_name}-${count.index}-${local.env}"
   }
   depends_on = [aws_eip.nat_eip, aws_subnet.public]
 }
 
-# Route Tables
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -114,32 +108,31 @@ resource "aws_route_table_association" "private" {
   depends_on     = [aws_route_table.private, aws_subnet.private]
 }
 
-# Groupes de sécurité générés dynamiquement depuis le fichier CSV
-resource "aws_security_group" "dynamic_sg" {
-  for_each    = toset(local.sg_names)
+resource "aws_security_group" "sgs" {
+  for_each = toset(local.sg_names)
   name        = each.key
-  description = "SG for ${each.key}"
+  description = "Security group ${each.key}"
   vpc_id      = aws_vpc.main.id
-
   tags = {
     Name = "${each.key}-${local.env}"
   }
   depends_on = [aws_vpc.main]
 }
 
-# Règles dynamiques par ligne CSV
 resource "aws_security_group_rule" "sg_rules" {
-  for_each = local.all_sg_rules
-
-  type              = each.value.rule_type
-  protocol          = each.value.protocol
-  from_port         = tonumber(split("-", each.value.port_range)[0])
-  to_port           = tonumber(split("-", each.value.port_range)[1])
-  security_group_id = aws_security_group.dynamic_sg[each.value.sg_name].id
-
-  cidr_blocks = (each.value.dst_cidr != "" && each.value.dst_sg == "") ? [each.value.dst_cidr] : null
-
-  source_security_group_id = (each.value.dst_sg != "" && each.value.dst_cidr == "") ? aws_security_group.dynamic_sg[each.value.dst_sg].id : null
-
-  depends_on = [aws_security_group.dynamic_sg]
+  for_each = {
+    for k, v in local.all_sg_rules :
+    k => v if v.rule_type == "ingress"
+  }
+  security_group_id        = aws_security_group.sgs[each.value.sg_name].id
+  type                     = each.value.rule_type
+  protocol                 = each.value.protocol
+  from_port                = split("-", each.value.port_range)[0]
+  to_port = tonumber(
+    length(split("-", each.value.port_range)) == 2 ?
+    split("-", each.value.port_range)[1] :
+    each.value.port_range
+  )
+  cidr_blocks              = each.value.dst_cidr != "" ? [each.value.dst_cidr] : null
+  source_security_group_id = each.value.dst_sg != "" ? aws_security_group.sgs[each.value.dst_sg].id : null
 }

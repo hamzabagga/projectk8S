@@ -1,4 +1,3 @@
-
 variable "vpc_name" {
   type = string
   validation {
@@ -37,4 +36,4 @@ variable "eip_name" {
 
 variable "nat_gateway_name" {
   type = string
-} 
+}
