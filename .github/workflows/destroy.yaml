@@ -33,10 +33,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init with Workspace-specific Backend Key
+        run: |
+          terraform init -backend-config="key=${{ github.event.inputs.workspace }}/terraform.tfstate"
 
-      - name: Terraform Plan
+      - name: Select/Create Workspace
+        run: terraform workspace select ${{ github.event.inputs.workspace }} || terraform workspace new ${{ github.event.inputs.workspace }}
+
+      - name: Terraform Plan (Optional)
         run: terraform plan
 
       - name: Terraform Destroy
