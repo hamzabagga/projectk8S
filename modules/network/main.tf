@@ -136,14 +136,3 @@ resource "aws_security_group_rule" "sg_rules" {
   cidr_blocks              = each.value.dst_cidr != "" ? [each.value.dst_cidr] : null
   source_security_group_id = each.value.dst_sg != "" ? aws_security_group.sgs[each.value.dst_sg].id : null
 }
-module "network" {
-  source             = "./modules/network"
-
-  vpc_name           = var.vpc_name
-  cidr_block         = var.cidr_block
-  public_subnets     = var.public_subnets
-  private_subnets    = var.private_subnets
-  igw_name           = var.igw_name
-  eip_name           = var.eip_name
-  nat_gateway_name   = var.nat_gateway_name
-}
